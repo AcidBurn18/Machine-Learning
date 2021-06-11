@@ -12,23 +12,23 @@ Weather Prediciton""")
 
 st.sidebar.header("User Input")
 def user_input():
-  temperature=st.sidebar.slider('Temperature in Celcius',-10,49.8,20.0)
-  app_temperature=st.sidebar.slider('Apparent Temperature (C)',-10,49.8,20.0)
-  humidity=st.sidebar.slider('Humidity in %',0,1,0.51)
+  temperature=st.sidebar.slider('Temperature in Celcius',-10,49,20)
+  app_temperature=st.sidebar.slider('Apparent Temperature (C)',-10,49,20)
+  humidity=st.sidebar.slider('Humidity in %',0.01,1.0,0.51)
   wind_speed=st.sidebar.slider('Wind Speed in Km/h',5,80,16)
   wind_bearing=st.sidebar.slider('Wind bearing',0,360,235)
   visibility=st.sidebar.slider('Visibility',0,30,15)
   loud_cover=st.sidebar.slider('Loud Cover',0,0,0)
-  pressure=st.sidebar.slider('Pressure(millibar)',998,1050,1001.01)
+  pressure=st.sidebar.slider('Pressure(millibar)',998,1050,1001)
   data={'Temperature':temperature,
         'Apparent Temperature':app_temperature,
         'Humidty':humidity,
         'Wind Speed':wind_speed,
         'Wind Bearing':wind_bearing,
-        'Visibility':Visibility,
+        'Visibility':visibility,
         'Loud Cover':loud_cover,
         'Pressure':pressure}
-  f=pd.DataFrame(data,index[0])
+  f=pd.DataFrame(data,index=[0])
   return f
 
 def main():
@@ -68,13 +68,11 @@ def main():
   call=user_input()
   st.subheader('Input Data')
   st.write(call)
-  t=numpy.array(call.values)
+  t=np.array(call.values)
+  temp=[]
   for i in range(8):
     temp.append(t[0][i])
   g=regression.predict([temp])
-  #f=[33,31,0.51,13,250,16,0.0,1001.25]
-  #fg=[-1.677942,	-4.173708,	0.834610,	8.894211,	161.018817,	7.894064,	0.0,	1021.204960]
- # g=regression.predict([fg])
   if (int(g)>max(unique_summary)):
     out=weather_map[max(unique_summary)]
 
