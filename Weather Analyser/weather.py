@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
@@ -11,6 +12,7 @@ st.write("""
 Weather Prediciton""")
 
 st.sidebar.header("User Input")
+@st.cache
 def user_input():
   temperature=st.sidebar.slider('Temperature in Celcius',-10,49,20)
   app_temperature=st.sidebar.slider('Apparent Temperature (C)',-10,49,20)
@@ -30,55 +32,66 @@ def user_input():
         'Pressure':pressure}
   f=pd.DataFrame(data,index=[0])
   return f
-
+@st.cache
 def main():
+  flag=0
+  st.title("Upload File")
+  csv_file=st.file_uploader("Upload",type=['csv','xslx'])
+  
+  if csv_file is not None:
+    file_details = {"Filename":csv_file.name,"FileType":csv_file.type,"FileSize":csv_file.size}
+    flag=1
+    st.write(file_details)
+    df=pd.read_csv(csv_file,parse_dates=['Formatted Date'])
+    df['Formatted Date'] = pd.to_datetime(df['Formatted Date'], utc=True)
+    df = df.set_index('Formatted Date')
 
-  df=pd.read_csv('weatherHistory.csv',parse_dates=['Formatted Date'])
-  df['Formatted Date'] = pd.to_datetime(df['Formatted Date'], utc=True)
-  df = df.set_index('Formatted Date')
+    le=preprocessing.LabelEncoder()
+    df['Summary']=le.fit_transform(df['Daily Summary'])
 
-  le=preprocessing.LabelEncoder()
-  df['Summary']=le.fit_transform(df['Daily Summary'])
+    unique_summary=df['Summary'].unique()
+    unique_daily_summary=df['Daily Summary'].unique()
+    weather_map={unique_summary[i]:unique_daily_summary[i] for i in range(len(unique_summary))}
 
-  unique_summary=df['Summary'].unique()
-  unique_daily_summary=df['Daily Summary'].unique()
-  weather_map={unique_summary[i]:unique_daily_summary[i] for i in range(len(unique_summary))}
+    summary=df.pop('Daily Summary')
+    summary.fillna('Dilemma')
 
-  summary=df.pop('Daily Summary')
-  summary.fillna('Dilemma')
+    data_columns = ['Summary','Temperature (C)', 'Apparent Temperature (C)', 'Humidity', 'Wind Speed (km/h)', 'Wind Bearing (degrees)', 'Visibility (km)', 'Loud Cover', 'Pressure (millibars)']
+    df_monthly_mean = df[data_columns].resample('MS').mean()
+    df_monthly_mean.reset_index(inplace=True)
 
-  data_columns = ['Summary','Temperature (C)', 'Apparent Temperature (C)', 'Humidity', 'Wind Speed (km/h)', 'Wind Bearing (degrees)', 'Visibility (km)', 'Loud Cover', 'Pressure (millibars)']
-  df_monthly_mean = df[data_columns].resample('MS').mean()
-  df_monthly_mean.reset_index(inplace=True)
+    summary1=pd.DataFrame(summary)
 
-  summary1=pd.DataFrame(summary)
+    col_y=df_monthly_mean[['Summary']]
+    col_x_=df_monthly_mean[['Temperature (C)', 'Apparent Temperature (C)', 'Humidity', 'Wind Speed (km/h)', 'Wind Bearing (degrees)', 'Visibility (km)', 'Loud Cover', 'Pressure (millibars)']]
 
-  col_y=df_monthly_mean[['Summary']]
-  col_x_=df_monthly_mean[['Temperature (C)', 'Apparent Temperature (C)', 'Humidity', 'Wind Speed (km/h)', 'Wind Bearing (degrees)', 'Visibility (km)', 'Loud Cover', 'Pressure (millibars)']]
+    x_train,x_test,y_train,y_test=train_test_split(col_x_,col_y,test_size=0.20,random_state=True)
 
-  x_train,x_test,y_train,y_test=train_test_split(col_x_,col_y,test_size=0.20,random_state=True)
+    regression = LinearRegression()
+    regression.fit(x_train, y_train)
 
-  regression = LinearRegression()
-  regression.fit(x_train, y_train)
+    pred_y = regression.predict(x_test)
 
-  pred_y = regression.predict(x_test)
+    prediction = pd.DataFrame({'P summary': [k for k in pred_y],'Actual summ':[j for j in y_test['Summary']]})
 
-  prediction = pd.DataFrame({'P summary': [k for k in pred_y],'Actual summ':[j for j in y_test['Summary']]})
+    call=user_input()
+    st.subheader('Input Data')
+    st.write(call)
+    t=np.array(call.values)
+    temp=[]
+    for i in range(8):
+      temp.append(t[0][i])
+    g=regression.predict([temp])
+    if (int(g)>max(unique_summary)):
+      out=weather_map[max(unique_summary)]
 
-  call=user_input()
-  st.subheader('Input Data')
-  st.write(call)
-  t=np.array(call.values)
-  temp=[]
-  for i in range(8):
-    temp.append(t[0][i])
-  g=regression.predict([temp])
-  if (int(g)>max(unique_summary)):
-    out=weather_map[max(unique_summary)]
+    else:
+      out=weather_map[int(g)]
+    st.subheader("Prediction")
+    st.write(out)
 
-  else:
-    out=weather_map[int(g)]
-  st.subheader("Prediction")
-  st.write(out)
 if __name__== '__main__':
   main()
+
+ 
+ 
